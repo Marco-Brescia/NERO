@@ -1,5 +1,5 @@
 # Always require a human review for these paths
-/docs/              @YOUR-USERNAME
-/src/**/safety/     @YOUR-USERNAME
-/.github/           @YOUR-USERNAME
-/deploy/            @YOUR-USERNAME
+/docs/              @Marco-Brescia
+/src/**/safety/     @Marco-Brescia
+/.github/           @Marco-Brescia
+/deploy/            @Marco-Brescia
