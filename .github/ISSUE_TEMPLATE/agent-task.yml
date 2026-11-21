@@ -1,0 +1,25 @@
+name: Agent task
+description: A well-scoped task to assign to Copilot
+labels: [agent]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What should change, in 2-3 sentences
+    validations: { required: true }
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Verifiable list (tests that must pass, expected behaviour)
+    validations: { required: true }
+  - type: textarea
+    id: packages
+    attributes:
+      label: Packages or files involved (inside src/)
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Do NOT touch
+      value: "Anything outside src/, anything under safety/"

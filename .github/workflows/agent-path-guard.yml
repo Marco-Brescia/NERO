@@ -1,0 +1,43 @@
+# Fails any agent-authored PR that touches files outside src/ (or inside a safety/ directory).
+# Uses pull_request_target so the rule always comes from the base branch and an agent
+# cannot weaken it from inside its own PR. It never checks out PR code.
+# Make "agent-path-guard / guard" a required status check in your branch ruleset.
+name: agent-path-guard
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Agent PRs may only change src/ (excluding safety/)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          agent=0
+          case "$HEAD_REF" in copilot/*) agent=1 ;; esac
+          case "$AUTHOR" in Copilot|copilot-swe-agent*) agent=1 ;; esac
+          if [ "$agent" -eq 0 ]; then
+            echo "Not an agent PR: guard skipped."
+            exit 0
+          fi
+          files=$(gh api --paginate "repos/$REPO/pulls/$PR/files" \
+                  --jq '.[] | .filename, (.previous_filename // empty)')
+          outside=$(printf '%s\n' "$files" | grep -v '^src/' || true)
+          safety=$(printf '%s\n' "$files" | grep -E '(^|/)safety/' || true)
+          if [ -n "$outside" ] || [ -n "$safety" ]; then
+            echo "::error::Agent PR touches protected paths:"
+            printf '%s\n%s\n' "$outside" "$safety" | sort -u | sed '/^$/d'
+            exit 1
+          fi
+          echo "OK: all changes are inside src/ and outside safety/."
