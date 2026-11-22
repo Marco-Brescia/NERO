@@ -1,5 +1,6 @@
 # Prepares the environment used by the Copilot cloud agent.
 # The job name must stay exactly "copilot-setup-steps".
+# No "container:" here: ROS 2 is installed directly on the Ubuntu 24.04 runner.
 name: Copilot Setup Steps
 
 on:
@@ -12,19 +13,34 @@ on:
 jobs:
   copilot-setup-steps:
     runs-on: ubuntu-24.04
-    container: ros:jazzy
+    timeout-minutes: 30
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@v4
-      - name: Install dependencies
+
+      - name: Install ROS 2 Jazzy and build tools
+        uses: ros-tooling/setup-ros@v0.7
+        with:
+          required-ros-distributions: jazzy
+
+      - name: Install package dependencies
+        shell: bash
         run: |
-          apt-get update
-          apt-get install -y python3-colcon-common-extensions python3-rosdep git
+          source /opt/ros/jazzy/setup.bash
           rosdep update --rosdistro jazzy || true
-          rosdep install --from-paths src --ignore-src -y --rosdistro jazzy
+          if find src -name package.xml 2>/dev/null | grep -q .; then
+            rosdep install --from-paths src --ignore-src -y --rosdistro jazzy
+          else
+            echo "No ROS packages in src/ yet: skipping rosdep."
+          fi
+
       - name: Initial build
         shell: bash
         run: |
           source /opt/ros/jazzy/setup.bash
-          colcon build
+          if find src -name package.xml 2>/dev/null | grep -q .; then
+            colcon build
+          else
+            echo "No ROS packages in src/ yet: skipping build."
+          fi
